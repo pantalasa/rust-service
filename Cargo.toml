@@ -10,6 +10,10 @@ serde_json = "1.0"
 scheduler-lib = { path = "vendor-libs/scheduler-lib" }
 date-utils = { path = "vendor-libs/date-utils" }
 crypto-helper = { path = "vendor-libs/crypto-helper" }
+hyper = "0.14.18"
+tokio = { version = "1.17.0", features = ["full"] }
+regex = "1.5.4"
+chrono = "0.4.19"
 
 [dev-dependencies]
 assert_cmd = "2.0"
