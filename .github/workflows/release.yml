@@ -1,8 +1,8 @@
 name: Release Gate
 on:
-  push:
-    branches:
-      - "**"
+  workflow_run:
+    workflows: ["GH-Actions"]
+    types: [completed]
   workflow_dispatch:
 
 env:
@@ -15,6 +15,7 @@ env:
 jobs:
   ok_release:
     runs-on: ubuntu-latest
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     steps:
       - name: Install Lunar CLI (from branch build)
         run: |
@@ -23,6 +24,11 @@ jobs:
           chmod +x "$HOME/.local/bin/lunar"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
+      - name: Wait for collectors to finish
+        run: |
+          echo "Waiting 15s for Lunar collectors to process this commit..."
+          sleep 15
+
       - name: Check release policies
         run: |
           echo "=========================================="
@@ -30,10 +36,10 @@ jobs:
           echo "=========================================="
           echo ""
           echo "Component: $COMPONENT"
-          echo "Commit:    ${{ github.sha }}"
+          echo "Commit:    ${{ github.event.workflow_run.head_sha || github.sha }}"
           echo ""
           echo "Running release gate check..."
-          if lunar policy ok-release "$COMPONENT" "${{ github.sha }}"; then
+          if lunar policy ok-release "$COMPONENT" "${{ github.event.workflow_run.head_sha || github.sha }}"; then
             echo ""
             echo "✅ All release policies passed — proceeding with deploy."
           else
@@ -52,6 +58,6 @@ jobs:
     steps:
       - name: Release
         run: |
-          echo "🚀 Deploying ${{ github.repository }} @ ${{ github.sha }}..."
+          echo "🚀 Deploying ${{ github.repository }} @ ${{ github.event.workflow_run.head_sha || github.sha }}..."
           sleep 2
           echo "Deploy complete."
