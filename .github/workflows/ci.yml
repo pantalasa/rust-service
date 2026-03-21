@@ -36,7 +36,7 @@ jobs:
           cargo test
       - name: Build Docker image
         run: |
-          docker build \
+          docker build --no-cache \
             --label git_sha=${{ github.sha }} \
             --label build_date=$(date -u +"%Y-%m-%dT%H:%M:%SZ") \
             --label version=${{ github.ref_name }} \
