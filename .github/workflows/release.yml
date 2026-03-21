@@ -26,8 +26,8 @@ jobs:
 
       - name: Wait for collectors to finish
         run: |
-          echo "Waiting 15s for Lunar collectors to process this commit..."
-          sleep 15
+          echo "Waiting 120s for Lunar collectors to process this commit..."
+          sleep 120
 
       - name: Check release policies
         run: |
