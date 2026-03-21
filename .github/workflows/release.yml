@@ -7,7 +7,7 @@ on:
 
 jobs:
   ok_release:
-    runs-on: cronos
+    runs-on: ubuntu-latest
     steps:
       - name: Install Lunar CLI
         run: |
@@ -26,7 +26,7 @@ jobs:
 
   release:
     needs: ok_release
-    runs-on: cronos
+    runs-on: ubuntu-latest
     steps:
       - name: Release
         run: |
