@@ -23,9 +23,6 @@ jobs:
           chmod +x "$HOME/.local/bin/lunar"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
-      - name: Install PostgreSQL client
-        run: sudo apt-get update && sudo apt-get install -y postgresql-client
-
       - name: Check release policies
         run: |
           echo "=========================================="
@@ -35,63 +32,17 @@ jobs:
           echo "Component: $COMPONENT"
           echo "Commit:    ${{ github.sha }}"
           echo ""
-
-          CONN_STR=$(lunar sql connection-string)
-
-          echo "Policies enforced at block-release or block-pr-and-release:"
-          echo "------------------------------------------"
-          psql "$CONN_STR" -t -A -F '|' -c "
-            SELECT name, status, enforcement, description
-            FROM checks
-            WHERE component_id = '$COMPONENT'
-              AND git_sha = '${{ github.sha }}'
-              AND enforcement IN ('block-release', 'block-pr-and-release')
-            ORDER BY
-              CASE status
-                WHEN 'fail' THEN 1
-                WHEN 'error' THEN 2
-                WHEN 'pending' THEN 3
-                WHEN 'pass' THEN 4
-                WHEN 'skipped' THEN 5
-              END ASC;
-          " | while IFS='|' read -r name status enforcement description; do
-            case "$status" in
-              pass)    icon="✅" ;;
-              fail)    icon="❌" ;;
-              error)   icon="⚠️"  ;;
-              pending) icon="⏳" ;;
-              *)       icon="❔" ;;
-            esac
-            printf "%s  %-40s [%s] (%s)\n" "$icon" "$name" "$status" "$enforcement"
-            if [ -n "$description" ]; then
-              printf "    %s\n" "$description"
-            fi
-          done
-          echo ""
-
           echo "Running release gate check..."
           if lunar policy ok-release "$COMPONENT" "${{ github.sha }}"; then
             echo ""
             echo "✅ All release policies passed — proceeding with deploy."
           else
             echo ""
-            echo "❌ Release blocked — one or more policies are failing."
+            echo "❌ Release blocked — one or more policies with enforcement"
+            echo "   'block-release' or 'block-pr-and-release' are failing"
+            echo "   for this commit."
             echo ""
-            echo "Failing checks:"
-            echo "------------------------------------------"
-            psql "$CONN_STR" -t -A -F '|' -c "
-              SELECT name, enforcement, unnest(failure_reason) as reason
-              FROM checks
-              WHERE component_id = '$COMPONENT'
-                AND git_sha = '${{ github.sha }}'
-                AND enforcement IN ('block-release', 'block-pr-and-release')
-                AND status = 'fail';
-            " | while IFS='|' read -r name enforcement reason; do
-              printf "  ❌ %s (%s)\n" "$name" "$enforcement"
-              if [ -n "$reason" ]; then
-                printf "     → %s\n" "$reason"
-              fi
-            done
+            echo "   View details: https://cronos.demo.earthly.dev"
             exit 1
           fi
 
