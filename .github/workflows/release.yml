@@ -5,6 +5,13 @@ on:
       - "**"
   workflow_dispatch:
 
+env:
+  LUNAR_HUB_HOST: cronos.demo.earthly.dev
+  LUNAR_HUB_GRPC_PORT: "443"
+  LUNAR_HUB_HTTP_PORT: "443"
+  LUNAR_HUB_TOKEN: ${{ secrets.LUNAR_HUB_TOKEN }}
+  COMPONENT: github.com/${{ github.repository }}
+
 jobs:
   ok_release:
     runs-on: ubuntu-latest
@@ -15,14 +22,78 @@ jobs:
           curl -sSfL https://github.com/earthly/lunar-dist/releases/latest/download/lunar-linux-amd64 -o "$HOME/.local/bin/lunar"
           chmod +x "$HOME/.local/bin/lunar"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-      - name: Fake CD release gate
-        env:
-          LUNAR_HUB_HOST: cronos.demo.earthly.dev
-          LUNAR_HUB_GRPC_PORT: "443"
-          LUNAR_HUB_HTTP_PORT: "443"
-          LUNAR_HUB_TOKEN: ${{ secrets.LUNAR_HUB_TOKEN }}
+
+      - name: Install PostgreSQL client
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Check release policies
         run: |
-          lunar policy ok-release github.com/${{ github.repository }} ${{ github.sha }}
+          echo "=========================================="
+          echo "  Lunar Release Gate"
+          echo "=========================================="
+          echo ""
+          echo "Component: $COMPONENT"
+          echo "Commit:    ${{ github.sha }}"
+          echo ""
+
+          CONN_STR=$(lunar sql connection-string)
+
+          echo "Policies enforced at block-release or block-pr-and-release:"
+          echo "------------------------------------------"
+          psql "$CONN_STR" -t -A -F '|' -c "
+            SELECT name, status, enforcement, description
+            FROM checks
+            WHERE component_id = '$COMPONENT'
+              AND git_sha = '${{ github.sha }}'
+              AND enforcement IN ('block-release', 'block-pr-and-release')
+            ORDER BY
+              CASE status
+                WHEN 'fail' THEN 1
+                WHEN 'error' THEN 2
+                WHEN 'pending' THEN 3
+                WHEN 'pass' THEN 4
+                WHEN 'skipped' THEN 5
+              END ASC;
+          " | while IFS='|' read -r name status enforcement description; do
+            case "$status" in
+              pass)    icon="✅" ;;
+              fail)    icon="❌" ;;
+              error)   icon="⚠️"  ;;
+              pending) icon="⏳" ;;
+              *)       icon="❔" ;;
+            esac
+            printf "%s  %-40s [%s] (%s)\n" "$icon" "$name" "$status" "$enforcement"
+            if [ -n "$description" ]; then
+              printf "    %s\n" "$description"
+            fi
+          done
+          echo ""
+
+          echo "Running release gate check..."
+          if lunar policy ok-release "$COMPONENT" "${{ github.sha }}"; then
+            echo ""
+            echo "✅ All release policies passed — proceeding with deploy."
+          else
+            echo ""
+            echo "❌ Release blocked — one or more policies are failing."
+            echo ""
+            echo "Failing checks:"
+            echo "------------------------------------------"
+            psql "$CONN_STR" -t -A -F '|' -c "
+              SELECT name, enforcement, unnest(failure_reason) as reason
+              FROM checks
+              WHERE component_id = '$COMPONENT'
+                AND git_sha = '${{ github.sha }}'
+                AND enforcement IN ('block-release', 'block-pr-and-release')
+                AND status = 'fail';
+            " | while IFS='|' read -r name enforcement reason; do
+              printf "  ❌ %s (%s)\n" "$name" "$enforcement"
+              if [ -n "$reason" ]; then
+                printf "     → %s\n" "$reason"
+              fi
+            done
+            exit 1
+          fi
 
   release:
     needs: ok_release
@@ -30,4 +101,6 @@ jobs:
     steps:
       - name: Release
         run: |
-          echo "Releasing ${{ github.sha }}..."
+          echo "🚀 Deploying ${{ github.repository }} @ ${{ github.sha }}..."
+          sleep 2
+          echo "Deploy complete."
