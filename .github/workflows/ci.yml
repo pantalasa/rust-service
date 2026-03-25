@@ -43,3 +43,56 @@ jobs:
             --label repository=${{ github.repository }} \
             -t rust-service:${{ github.sha }} \
             .
+
+  ok_release:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: rust_service_build
+    runs-on: ubuntu-latest
+    env:
+      LUNAR_HUB_HOST: cronos.demo.earthly.dev
+      LUNAR_HUB_GRPC_PORT: "443"
+      LUNAR_HUB_HTTP_PORT: "443"
+      LUNAR_HUB_TOKEN: ${{ secrets.LUNAR_HUB_TOKEN }}
+      COMPONENT: github.com/${{ github.repository }}
+      RELEASE_SHA: ${{ github.sha }}
+    steps:
+      - name: Install Lunar CLI
+        run: |
+          mkdir -p "$HOME/.local/bin"
+          curl -sSfL https://github.com/pantalasa-cronos/rust-service/releases/download/test-cli-build/lunar-linux-amd64 -o "$HOME/.local/bin/lunar"
+          chmod +x "$HOME/.local/bin/lunar"
+          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+
+      - name: Check release policies
+        run: |
+          echo "=========================================="
+          echo "  Lunar Release Gate"
+          echo "=========================================="
+          echo ""
+          echo "Component: $COMPONENT"
+          echo "Commit:    $RELEASE_SHA"
+          echo ""
+          echo "Running release gate check..."
+          if lunar policy ok-release "$COMPONENT" "$RELEASE_SHA"; then
+            echo ""
+            echo "✅ All release policies passed — proceeding with deploy."
+          else
+            echo ""
+            echo "❌ Release blocked — one or more policies with enforcement"
+            echo "   'block-release' or 'block-pr-and-release' are failing"
+            echo "   for this commit."
+            echo ""
+            echo "   View details: https://cronos.demo.earthly.dev"
+            exit 1
+          fi
+
+  release:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: ok_release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Release
+        run: |
+          echo "🚀 Deploying ${{ github.repository }} @ ${{ github.sha }}..."
+          sleep 2
+          echo "Deploy complete."
