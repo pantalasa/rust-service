@@ -59,7 +59,7 @@ jobs:
       - name: Install Lunar CLI
         run: |
           mkdir -p "$HOME/.local/bin"
-          curl -sSfL https://github.com/pantalasa/rust-service/releases/download/test-cli-build/lunar-linux-amd64 -o "$HOME/.local/bin/lunar"
+          curl -sSfL https://github.com/earthly/lunar-dist/releases/download/v1.1.1/lunar-linux-amd64 -o "$HOME/.local/bin/lunar"
           chmod +x "$HOME/.local/bin/lunar"
           echo "$HOME/.local/bin" >> "$GITHUB_PATH"
 
