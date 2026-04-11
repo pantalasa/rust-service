@@ -1,59 +1,52 @@
 name: Release Gate
 on:
-  workflow_dispatch:
-    inputs:
-      sha:
-        description: "Git SHA to check for release (defaults to HEAD of selected branch)"
-        required: false
-
+    workflow_dispatch:
+        inputs:
+            sha:
+                description: "Git SHA to check for release (defaults to HEAD of selected branch)"
+                required: false
 env:
-  LUNAR_HUB_HOST: lunar.demo.earthly.dev
-  LUNAR_HUB_GRPC_PORT: "443"
-  LUNAR_HUB_HTTP_PORT: "443"
-  LUNAR_HUB_TOKEN: ${{ secrets.LUNAR_HUB_TOKEN }}
-  COMPONENT: github.com/${{ github.repository }}
-  RELEASE_SHA: ${{ inputs.sha || github.sha }}
-
+    LUNAR_HUB_HOST: lunar.demo.earthly.dev
+    LUNAR_HUB_GRPC_PORT: "443"
+    LUNAR_HUB_HTTP_PORT: "443"
+    LUNAR_HUB_TOKEN: ${{ secrets.LUNAR_HUB_TOKEN }}
+    COMPONENT: github.com/${{ github.repository }}
+    RELEASE_SHA: ${{ inputs.sha || github.sha }}
 jobs:
-  ok_release:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Install Lunar CLI
-        run: |
-          mkdir -p "$HOME/.local/bin"
-          curl -sSfL https://github.com/earthly/lunar-dist/releases/download/v1.1.1/lunar-linux-amd64 -o "$HOME/.local/bin/lunar"
-          chmod +x "$HOME/.local/bin/lunar"
-          echo "$HOME/.local/bin" >> "$GITHUB_PATH"
-
-      - name: Check release policies
-        run: |
-          echo "=========================================="
-          echo "  Lunar Release Gate"
-          echo "=========================================="
-          echo ""
-          echo "Component: $COMPONENT"
-          echo "Commit:    $RELEASE_SHA"
-          echo ""
-          echo "Running release gate check..."
-          if lunar policy ok-release "$COMPONENT" "$RELEASE_SHA"; then
-            echo ""
-            echo "✅ All release policies passed — proceeding with deploy."
-          else
-            echo ""
-            echo "❌ Release blocked — one or more policies with enforcement"
-            echo "   'block-release' or 'block-pr-and-release' are failing"
-            echo "   for this commit."
-            echo ""
-            echo "   View details: https://lunar.demo.earthly.dev"
-            exit 1
-          fi
-
-  release:
-    needs: ok_release
-    runs-on: ubuntu-latest
-    steps:
-      - name: Release
-        run: |
-          echo "🚀 Deploying ${{ github.repository }} @ $RELEASE_SHA..."
-          sleep 2
-          echo "Deploy complete."
+    ok_release:
+        runs-on: localdev-root-
+        steps:
+            - name: Install Lunar CLI
+              run: |
+                mkdir -p "$HOME/.local/bin"
+                curl -sSfL https://github.com/earthly/lunar-dist/releases/download/v1.1.1/lunar-linux-amd64 -o "$HOME/.local/bin/lunar"
+                chmod +x "$HOME/.local/bin/lunar"
+                echo "$HOME/.local/bin" >> "$GITHUB_PATH"
+            - name: Check release policies
+              run: |
+                echo "=========================================="
+                echo "  Lunar Release Gate"
+                echo "=========================================="
+                echo ""
+                echo "Component: $COMPONENT"
+                echo "Commit:    $RELEASE_SHA"
+                echo ""
+                echo "Running release gate check..."
+                if lunar policy ok-release "$COMPONENT" "$RELEASE_SHA"; then
+                  echo ""
+                  echo "✅ All release policies passed — proceeding with deploy."
+                else
+                  echo ""
+                  echo "❌ Release blocked — one or more policies with enforcement"
+                  echo "   'block-release' or 'block-pr-and-release' are failing"
+                  echo "   for this commit."
+                  echo ""
+                  echo "   View details: https://lunar.demo.earthly.dev"
+                  exit 1
+                fi
+    release:
+        needs: ok_release
+        runs-on: localdev-root-
+        steps:
+            - name: Release
+              run: "echo \"\U0001F680 Deploying ${{ github.repository }} @ $RELEASE_SHA...\"\nsleep 2\necho \"Deploy complete.\"\n"
