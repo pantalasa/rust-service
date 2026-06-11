@@ -1,0 +1,13 @@
+*.log
+.env
+.env.*
+.DS_Store
+dist/
+build/
+coverage/
+node_modules/
+target/
+bin/
+obj/
+__pycache__/
+.venv/
