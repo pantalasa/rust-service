@@ -12,24 +12,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "alibabacloud"
-version = "0.1.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c47a78fd386ac729c5013ebe2acf35957af305561f95cb0bffe37d3054e77bb"
-dependencies = [
- "base64",
- "chrono",
- "hmac",
- "percent-encoding",
- "reqwest",
- "serde",
- "serde_json",
- "sha1",
- "tokio",
- "uuid",
-]
-
-[[package]]
 name = "android_system_properties"
 version = "0.1.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1009,7 +991,6 @@ dependencies = [
 name = "rust-service"
 version = "0.1.0"
 dependencies = [
- "alibabacloud",
  "chrono",
  "crypto-helper",
  "date-utils",

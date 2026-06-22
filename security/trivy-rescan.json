@@ -1,0 +1,42 @@
+{
+  "SchemaVersion": 2,
+  "CreatedAt": "2026-06-21T02:00:00Z",
+  "ArtifactName": "github.com/pantalasa/rust-service",
+  "ArtifactType": "filesystem",
+  "Metadata": {
+    "Comment": "Scheduled post-release re-scan of the latest released commit (ff-style nightly job). The release-time scan was clean against the gates in effect at merge; this re-scan re-evaluates the same artifact and surfaces an advisory that is now gated by the CVE release gate."
+  },
+  "Results": [
+    {
+      "Target": "Cargo.lock",
+      "Class": "lang-pkgs",
+      "Type": "cargo",
+      "Vulnerabilities": [
+        {
+          "VulnerabilityID": "GHSA-82j2-j2ch-gfr8",
+          "PkgID": "rustls-webpki@0.103.9",
+          "PkgName": "rustls-webpki",
+          "InstalledVersion": "0.103.9",
+          "FixedVersion": "0.103.13, 0.104.0-alpha.7",
+          "Status": "fixed",
+          "Severity": "HIGH",
+          "Title": "rustls-webpki: Denial of service via panic on malformed CRL BIT STRING",
+          "Description": "rustls-webpki before 0.103.13 can be made to panic (denial of service) when parsing a malformed Certificate Revocation List (CRL) containing an invalid BIT STRING. A remote peer able to supply a crafted CRL can crash the verifying process.",
+          "PrimaryURL": "https://github.com/advisories/GHSA-82j2-j2ch-gfr8",
+          "PublishedDate": "2026-04-24T16:20:17Z",
+          "DataSource": {
+            "ID": "ghsa",
+            "Name": "GitHub Security Advisory Rust",
+            "URL": "https://github.com/advisories?query=type%3Areviewed+ecosystem%3Arust"
+          },
+          "CVSS": {
+            "ghsa": {
+              "V3Vector": "CVSS:3.1/AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H",
+              "V3Score": 7.5
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
